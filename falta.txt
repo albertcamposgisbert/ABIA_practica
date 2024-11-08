@@ -1,0 +1,6 @@
+
+- Hacer lista de costes (1 dia 5€, 2-3 dias 3€, 4-5 dias 1,5€)
+- Hacer almacenaje + costes asociados
+- Hacer operador de cambio de paquete de oferta
+- Hacer generador de estados
+- Hacer heuristicas (primero la de relacion precio - coste), despues felicidad

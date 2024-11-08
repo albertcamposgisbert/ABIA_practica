@@ -3,8 +3,12 @@ from abia_azamon import *
 
 paquetes = []  # Atr: peso, prioridad
 ofertas = []  # Atr: preciomax, peso, dias
+
 peso_por_oferta = []
 lista_paquetes_ofertas = []  # Cada elemento es la oferta y el indice el id del paquete
+
+
+
 almacenaje = []
 
 
@@ -25,6 +29,9 @@ def asignable(paquete, oferta, peso_acumulado):
 def crear_asignacion_por_prioridad(paquetes, ofertas):
     oferta_por_paquete = [None] * len(paquetes)
     peso_por_oferta = [0.0] * len(ofertas)
+    global coste_almacenamiento
+    coste_almacenamiento = 0.0
+    coste_por_kg_dia = 0.25
 
     # Agrupar paquetes por prioridad
     paquetes_por_prioridad = [
@@ -34,7 +41,7 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
     ]
 
     # Ordenar las ofertas por días de entrega y capacidad, manteniendo los índices originales
-    ofertas_ordenadas = sorted(enumerate(ofertas), key=lambda o: (o[1].dias, o[1].pesomax))
+    ofertas_ordenadas = sorted(enumerate(ofertas), key=lambda o: (o[1].dias, o[1].pesomax)) # O precio?
 
     # Asignar paquetes a ofertas por prioridad
     for paquetes_prioridad in paquetes_por_prioridad:
@@ -45,7 +52,15 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
                     peso_por_oferta[id_oferta] += paquete.peso
                     oferta_por_paquete[paquetes.index(paquete)] = id_oferta
                     asignado = True
+                    
+                    # Calcular el coste de almacenamiento
+                    if oferta.dias in [3, 4]:
+                        coste_almacenamiento += paquete.peso * coste_por_kg_dia * 1
+                    elif oferta.dias == 5:
+                        coste_almacenamiento += paquete.peso * coste_por_kg_dia * 2
+                        
                     break
+                
             if not asignado:
                 print(f"Paquete {paquete} no pudo ser asignado a ninguna oferta")
 
@@ -72,6 +87,7 @@ def estado_inicial_por_prioridad(semilla, n_paq):
         print("No se pudo encontrar una solución válida")
     else:
         print("Solución válida encontrada")
+        print(f'{coste_almacenamiento} €')
 
 
 
