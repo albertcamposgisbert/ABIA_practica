@@ -1,9 +1,12 @@
 from abia_azamon import *
 
+
 paquetes = []  # Atr: peso, prioridad
 ofertas = []  # Atr: preciomax, peso, dias
 peso_por_oferta = []
 lista_paquetes_ofertas = []  # Cada elemento es la oferta y el indice el id del paquete
+almacenaje = []
+
 
 def asignable(paquete, oferta, peso_acumulado):
     
@@ -30,22 +33,21 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
         [p for p in paquetes if p.prioridad == 2]
     ]
 
-    ofertas_ordenadas = sorted(ofertas, key=lambda o: (o.dias, o.pesomax))
+    # Ordenar las ofertas por días de entrega y capacidad, manteniendo los índices originales
+    ofertas_ordenadas = sorted(enumerate(ofertas), key=lambda o: (o[1].dias, o[1].pesomax))
 
     # Asignar paquetes a ofertas por prioridad
     for paquetes_prioridad in paquetes_por_prioridad:
         for paquete in paquetes_prioridad:
             asignado = False
-            for id_oferta, oferta in enumerate(ofertas_ordenadas):
+            for id_oferta, oferta in ofertas_ordenadas:
                 if asignable(paquete, oferta, peso_por_oferta[id_oferta]):
                     peso_por_oferta[id_oferta] += paquete.peso
                     oferta_por_paquete[paquetes.index(paquete)] = id_oferta
                     asignado = True
-                    print(f"Paquete {paquete} asignado a oferta {id_oferta} (peso acumulado: {peso_por_oferta[id_oferta]} / {oferta.pesomax})")
                     break
             if not asignado:
                 print(f"Paquete {paquete} no pudo ser asignado a ninguna oferta")
-                return [], []
 
     return oferta_por_paquete, peso_por_oferta
 
@@ -57,7 +59,14 @@ def estado_inicial_por_prioridad(semilla, n_paq):
 
     #inspeccionar_paquetes(paquetes)
     #inspeccionar_ofertas(ofertas)
-    lista_paquetes_ofertas = crear_asignacion_por_prioridad(paquetes, ofertas)
+    lista_paquetes_ofertas, peso_por_oferta = crear_asignacion_por_prioridad(paquetes, ofertas)
+    
+    print(peso_por_oferta)
+    
+    print("Pesos acumulados finales por oferta:")
+    for id_oferta, peso in enumerate(peso_por_oferta):
+        print(f'{id_oferta} {ofertas[id_oferta]}  -> {peso} / {ofertas[id_oferta].pesomax}')
+        print(f"Oferta {id_oferta} -> Peso acumulado: {peso} / {ofertas[id_oferta].pesomax}")
     
     if not lista_paquetes_ofertas:
         print("No se pudo encontrar una solución válida")
@@ -68,7 +77,10 @@ def estado_inicial_por_prioridad(semilla, n_paq):
 
 # Operador; por implementar
 def set_peso_por_oferta(paquete, id_oferta):
+    if peso_por_oferta[id_oferta] + paquete.peso > ofertas[id_oferta].pesomax:
+        return False
     peso_por_oferta[id_oferta] += paquete.peso
+    
 
 # Heurísticas
 def puntuación_felicidad():
@@ -83,10 +95,5 @@ def puntuación_total():
 
 
 if __name__ == "__main__":
-    estado_inicial_por_prioridad(1234, 20)
+    estado_inicial_por_prioridad(1234, 120)
 
-    oferta_por_paquete, peso_por_oferta = crear_asignacion_por_prioridad(paquetes, ofertas)
-
-    print("Pesos acumulados finales por oferta:")
-    for id_oferta, peso in enumerate(peso_por_oferta):
-        print(f"Oferta {id_oferta} -> Peso acumulado: {peso} / {ofertas[id_oferta].pesomax}")
