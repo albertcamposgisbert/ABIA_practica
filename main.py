@@ -29,7 +29,10 @@ def asignable(paquete, oferta, peso_acumulado):
 def crear_asignacion_por_prioridad(paquetes, ofertas):
     oferta_por_paquete = [None] * len(paquetes)
     peso_por_oferta = [0.0] * len(ofertas)
-    global coste_almacenamiento
+    global coste_almacenamiento, coste_total_clientes, coste_total_ofertas
+    
+    coste_total_ofertas = 0.0
+    coste_total_clientes = 0.0
     coste_almacenamiento = 0.0
     coste_por_kg_dia = 0.25
 
@@ -49,6 +52,8 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
             asignado = False
             for id_oferta, oferta in ofertas_ordenadas:
                 if asignable(paquete, oferta, peso_por_oferta[id_oferta]):
+                    coste_total_clientes += 5 if paquete.prioridad == 0 else 3 if paquete.prioridad == 1 else 1.5
+                    coste_total_ofertas += oferta.precio * paquete.peso
                     peso_por_oferta[id_oferta] += paquete.peso
                     oferta_por_paquete[paquetes.index(paquete)] = id_oferta
                     asignado = True
@@ -63,18 +68,21 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
                 
             if not asignado:
                 print(f"Paquete {paquete} no pudo ser asignado a ninguna oferta")
-
+    
     return oferta_por_paquete, peso_por_oferta
 
 
 def estado_inicial_por_prioridad(semilla, n_paq):
-    global paquetes, ofertas, lista_paquetes_ofertas
+    global paquetes, ofertas, coste_almacenamiento, coste_total_ofertas
     paquetes = random_paquetes(n_paq, semilla)
     ofertas = random_ofertas(paquetes, 1.2, semilla) 
 
-    #inspeccionar_paquetes(paquetes)
-    #inspeccionar_ofertas(ofertas)
+    inspeccionar_paquetes(paquetes)
+    inspeccionar_ofertas(ofertas)
     lista_paquetes_ofertas, peso_por_oferta = crear_asignacion_por_prioridad(paquetes, ofertas)
+    
+    coste_almacenamiento = round(coste_almacenamiento, 2)
+    coste_total_ofertas = round(coste_total_ofertas, 2)
     
     print(peso_por_oferta)
     
@@ -86,8 +94,14 @@ def estado_inicial_por_prioridad(semilla, n_paq):
     if not lista_paquetes_ofertas:
         print("No se pudo encontrar una solución válida")
     else:
+        print('\n')
         print("Solución válida encontrada")
-        print(f'{coste_almacenamiento} €')
+        print(f'Coste de almacenamiento {coste_almacenamiento} €')
+        print(f'Coste total de ofertas {coste_total_ofertas} €')
+        print(f'Coste total clientes {coste_total_clientes} €')
+        print('\n')
+        print(f'Beneficio final: {coste_total_clientes - coste_total_ofertas - coste_almacenamiento} €')
+        
 
 
 
@@ -111,5 +125,5 @@ def puntuación_total():
 
 
 if __name__ == "__main__":
-    estado_inicial_por_prioridad(1234, 120)
+    estado_inicial_por_prioridad(1234, 10)
 
