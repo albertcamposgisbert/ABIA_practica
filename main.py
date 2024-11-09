@@ -1,15 +1,8 @@
 from abia_azamon import *
+from clases import *
+from copy import deepcopy
+from aima.search import Problem
 
-
-paquetes = []  # Atr: peso, prioridad
-ofertas = []  # Atr: preciomax, peso, dias
-
-peso_por_oferta = []
-lista_paquetes_ofertas = []  # Cada elemento es la oferta y el indice el id del paquete
-
-
-
-almacenaje = []
 
 
 def asignable(paquete, oferta, peso_acumulado):
@@ -27,14 +20,8 @@ def asignable(paquete, oferta, peso_acumulado):
     return True
 
 def crear_asignacion_por_prioridad(paquetes, ofertas):
-    oferta_por_paquete = [None] * len(paquetes)
-    peso_por_oferta = [0.0] * len(ofertas)
-    global coste_almacenamiento, coste_total_clientes, coste_total_ofertas
-    
-    coste_total_ofertas = 0.0
-    coste_total_clientes = 0.0
-    coste_almacenamiento = 0.0
-    coste_por_kg_dia = 0.25
+
+    assig = StateRepresentation(paquetes, ofertas)
 
     # Agrupar paquetes por prioridad
     paquetes_por_prioridad = [
@@ -51,79 +38,76 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
         for paquete in paquetes_prioridad:
             asignado = False
             for id_oferta, oferta in ofertas_ordenadas:
-                if asignable(paquete, oferta, peso_por_oferta[id_oferta]):
-                    coste_total_clientes += 5 if paquete.prioridad == 0 else 3 if paquete.prioridad == 1 else 1.5
-                    coste_total_ofertas += oferta.precio * paquete.peso
-                    peso_por_oferta[id_oferta] += paquete.peso
-                    oferta_por_paquete[paquetes.index(paquete)] = id_oferta
+                if asignable(paquete, oferta, assig.peso_por_oferta[id_oferta]):
+                    assig.coste_total_clientes += 5 if paquete.prioridad == 0 else 3 if paquete.prioridad == 1 else 1.5
+                    assig.coste_total_ofertas += oferta.precio * paquete.peso
+                    assig.peso_por_oferta[id_oferta] += paquete.peso
+                    assig.oferta_por_paquete[paquetes.index(paquete)] = id_oferta
                     asignado = True
                     
                     # Calcular el coste de almacenamiento
                     if oferta.dias in [3, 4]:
-                        coste_almacenamiento += paquete.peso * coste_por_kg_dia * 1
+                        assig.coste_almacenamiento += paquete.peso * assig.coste_por_kg_dia * 1
                     elif oferta.dias == 5:
-                        coste_almacenamiento += paquete.peso * coste_por_kg_dia * 2
+                        assig.coste_almacenamiento += paquete.peso * assig.coste_por_kg_dia * 2
                         
                     break
                 
             if not asignado:
                 print(f"Paquete {paquete} no pudo ser asignado a ninguna oferta")
     
-    return oferta_por_paquete, peso_por_oferta
+    return assig
 
 
 def estado_inicial_por_prioridad(semilla, n_paq):
-    global paquetes, ofertas, coste_almacenamiento, coste_total_ofertas
     paquetes = random_paquetes(n_paq, semilla)
     ofertas = random_ofertas(paquetes, 1.2, semilla) 
 
     inspeccionar_paquetes(paquetes)
     inspeccionar_ofertas(ofertas)
-    lista_paquetes_ofertas, peso_por_oferta = crear_asignacion_por_prioridad(paquetes, ofertas)
     
-    coste_almacenamiento = round(coste_almacenamiento, 2)
-    coste_total_ofertas = round(coste_total_ofertas, 2)
+    estado_inicial = crear_asignacion_por_prioridad(paquetes, ofertas)
     
-    print(peso_por_oferta)
+    estado_inicial.coste_almacenamiento = round(estado_inicial.coste_almacenamiento, 2)
+    estado_inicial.coste_total_ofertas = round(estado_inicial.coste_total_ofertas, 2)
+    
+    print(estado_inicial.peso_por_oferta)
     
     print("Pesos acumulados finales por oferta:")
-    for id_oferta, peso in enumerate(peso_por_oferta):
+    for id_oferta, peso in enumerate(estado_inicial.peso_por_oferta):
         print(f'{id_oferta} {ofertas[id_oferta]}  -> {peso} / {ofertas[id_oferta].pesomax}')
         print(f"Oferta {id_oferta} -> Peso acumulado: {peso} / {ofertas[id_oferta].pesomax}")
     
-    if not lista_paquetes_ofertas:
+    if not estado_inicial.oferta_por_paquete:
         print("No se pudo encontrar una solución válida")
     else:
         print('\n')
         print("Solución válida encontrada")
-        print(f'Coste de almacenamiento {coste_almacenamiento} €')
-        print(f'Coste total de ofertas {coste_total_ofertas} €')
-        print(f'Coste total clientes {coste_total_clientes} €')
+        print(f'Coste de almacenamiento {estado_inicial.coste_almacenamiento} €')
+        print(f'Coste total de ofertas {estado_inicial.coste_total_ofertas} €')
+        print(f'Coste total clientes {estado_inicial.coste_total_clientes} €')
         print('\n')
-        print(f'Beneficio final: {coste_total_clientes - coste_total_ofertas - coste_almacenamiento} €')
+        print(f'Beneficio final: {estado_inicial.coste_total_clientes - estado_inicial.coste_total_ofertas - estado_inicial.coste_almacenamiento} €')
         
-
-
-
-# Operador; por implementar
-def set_peso_por_oferta(paquete, id_oferta):
-    if peso_por_oferta[id_oferta] + paquete.peso > ofertas[id_oferta].pesomax:
-        return False
-    peso_por_oferta[id_oferta] += paquete.peso
+    return estado_inicial
     
 
 # Heurísticas
-def puntuación_felicidad():
-    pass
+# def puntuación_felicidad():
+#     pass
 
-def puntuación_coste():
-    pass
+# def puntuación_coste():
+#     pass
 
-# lambda*coste + beta*felicidad
-def puntuación_total():
-    pass
+# # lambda*coste + beta*felicidad
+# def puntuación_total():
+#     pass
 
 
 if __name__ == "__main__":
-    estado_inicial_por_prioridad(1234, 10)
+    estado_actual = estado_inicial_por_prioridad(1234, 100)
+    estado_succesor = estado_actual.copy()
+    
+    
+
 
