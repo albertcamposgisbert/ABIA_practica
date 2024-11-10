@@ -12,7 +12,7 @@ class MovePackage(Operator):
         self.of_dest = of
 
     def __repr__(self) -> str:
-        return f"Cambbiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
+        return f"Cambiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
 
 class SwapPackages(Operator):
     def __init__(self, p1: Paquete, p2: Paquete):
