@@ -3,9 +3,6 @@ from clases import *
 from aima.search import hill_climbing
 
 
-
-
-
 def crear_asignacion_por_prioridad(paquetes, ofertas):
 
     assig = StateRepresentation(paquetes, ofertas)
@@ -32,13 +29,21 @@ def crear_asignacion_por_prioridad(paquetes, ofertas):
                     assig.oferta_por_paquete[paquetes.index(paquete)] = id_oferta
                     asignado = True
                     
-                    # Calcular el coste de almacenamiento
+                    # Calcula el coste de almacenamiento
                     if oferta.dias in [3, 4]:
                         assig.coste_almacenamiento += paquete.peso * assig.coste_por_kg_dia * 1
                     elif oferta.dias == 5:
                         assig.coste_almacenamiento += paquete.peso * assig.coste_por_kg_dia * 2
                         
+                        
+                    # Calcula la felicidad
+                    dias_esperados = 1 if paquete.prioridad == 0 else 3 if paquete.prioridad == 1 else 5
+                    dias_avanzados = dias_esperados - oferta.dias
+                    assig.total_dias_avanzados += dias_avanzados
+                                         
                     break
+                
+                    
                 
             if not asignado:
                 print(f"Paquete {paquete} no pudo ser asignado a ninguna oferta")
@@ -81,10 +86,20 @@ def estado_inicial_por_prioridad(semilla, n_paq):
 
 
 if __name__ == "__main__":
-    estado_actual = estado_inicial_por_prioridad(1234, 5)
-    n = hill_climbing ( Problema ( estado_actual ) )
-    print (n)
-    print (n . heuristic ())
+    
+    estado_actual = estado_inicial_por_prioridad(222234, 10)
+    
+    beta = 1.0
+    alpha = 1.0
+    
+    problema = Problema(estado_actual, beta, alpha)
+    solucion = hill_climbing (problema)
+    
+    
+    print("Solución encontrada:")
+    print(solucion)
+    print("Valor de la heurística de la solución:")
+    print(problema.value(solucion))
     
     
 

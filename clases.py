@@ -33,6 +33,7 @@ class StateRepresentation(object):
         self.coste_total_ofertas = 0.0
         self.coste_total_clientes = 0.0
         self.coste_por_kg_dia = 0.25
+        self.total_dias_avanzados = 0
 
     def __repr__(self) -> str:
         paquetes_info = "\n".join([f"Paquete {i}: {paquete}" for i, paquete in enumerate(self.paquetes)])
@@ -103,13 +104,6 @@ class StateRepresentation(object):
             paq = action.paq
             of = action.of_dest
 
-            new_state.peso_por_oferta[new_state.oferta_por_paquete[self.paquetes.index(paq)]] = new_state.peso_por_oferta[new_state.oferta_por_paquete[self.paquetes.index(paq)]] - paq.peso
-            id_oferta = self.ofertas.index(of)
-            new_state.oferta_por_paquete[self.paquetes.index(paq)] = id_oferta
-            new_state.peso_por_oferta[id_oferta] = self.peso_por_oferta[id_oferta] + paq.peso
-            
-            new_state.coste_total_ofertas = self.coste_total_ofertas - self.ofertas[self.oferta_por_paquete[self.paquetes.index(paq)]].precio * paq.peso + of.precio * paq.peso
-            
             # Resta peso y coste de la oferta actual
             id_oferta_actual = new_state.oferta_por_paquete[self.paquetes.index(paq)]
             new_state.peso_por_oferta[id_oferta_actual] -= paq.peso
@@ -120,11 +114,19 @@ class StateRepresentation(object):
             new_state.oferta_por_paquete[self.paquetes.index(paq)] = id_oferta_nueva
             new_state.peso_por_oferta[id_oferta_nueva] += paq.peso
             new_state.coste_total_ofertas += self.ofertas[id_oferta_nueva].precio * paq.peso
+            
+            # Resta los días avanzados de la oferta actual
+            dias_esperados = 1 if paq.prioridad == 0 else 3 if paq.prioridad == 1 else 5
+            dias_avanzados_actual = dias_esperados - self.ofertas[id_oferta_actual].dias
+            new_state.total_dias_avanzados -= dias_avanzados_actual
                 
-                
+            # Suma los días avanzados de la nueva oferta
+            dias_avanzados_nueva = dias_esperados - self.ofertas[id_oferta_nueva].dias
+            new_state.total_dias_avanzados += dias_avanzados_nueva
             
         
         elif isinstance(action, SwapPackages):
+            
             paq1 = action.p1
             paq2 = action.p2
 
@@ -148,11 +150,27 @@ class StateRepresentation(object):
             new_state.coste_total_ofertas += self.ofertas[id_oferta2].precio * paq1.peso
 
 
+            # Resta la felicidad del cliente antes de intercambiar los paquetes
+            dias_esperados1 = 1 if paq1.prioridad == 0 else 3 if paq1.prioridad == 1 else 5
+            dias_esperados2 = 1 if paq2.prioridad == 0 else 3 if paq2.prioridad == 1 else 5
+            dias_avanzados1_actual = dias_esperados1 - self.ofertas[id_oferta1].dias
+            dias_avanzados2_actual = dias_esperados2 - self.ofertas[id_oferta2].dias
+            new_state.total_dias_avanzados -= dias_avanzados1_actual
+            new_state.total_dias_avanzados -= dias_avanzados2_actual
+            
+            
+            # Suma la felicidad del cliente después de intercambiar los paquetes
+            dias_avanzados1_nueva = dias_esperados1 - self.ofertas[id_oferta2].dias
+            dias_avanzados2_nueva = dias_esperados2 - self.ofertas[id_oferta1].dias
+            new_state.total_dias_avanzados += dias_avanzados1_nueva
+            new_state.total_dias_avanzados += dias_avanzados2_nueva
+
         return new_state
-        
-        
-    def heuristic(self) -> float:
-         return (self.coste_total_ofertas + self.coste_almacenamiento)
+    
+    def heuristic(self, beta: float, alpha: float) -> float:
+        coste_total = self.coste_total_ofertas + self.coste_almacenamiento
+        return beta * coste_total - alpha * self.total_dias_avanzados
+  
     
 def asignable(paquete, oferta, peso_acumulado):
     
@@ -169,11 +187,11 @@ def asignable(paquete, oferta, peso_acumulado):
     return True
 
 
-
-# USO AIMA (aún está con los param del BinPacking)
 class Problema(Problem):
-    def __init__(self, initial_state: StateRepresentation):
+    def __init__(self, initial_state: StateRepresentation, beta: float, alpha: float):
         super().__init__(initial_state)
+        self.beta = beta
+        self.alpha = alpha
 
     def actions(self, state: StateRepresentation):
         return state.generate_actions()
@@ -182,10 +200,9 @@ class Problema(Problem):
         return state.apply_action(action)
 
     def value(self, state: StateRepresentation) -> float:
-        return -state.heuristic()
+        return -state.heuristic(self.beta, self.alpha)
 
     def goal_test(self, state: StateRepresentation) -> bool:
         return False
     
 
-######################

@@ -1,4 +1,9 @@
 
-- Hacer operador de cambio de paquete de oferta
-- Hacer generador de estados
-- Hacer heuristicas (primero la de relacion precio - coste), despues felicidad
+
+- Implementar soluciom inicial al azar para poder comparar
+
+- Para ganar eficiencia espacial es una buena idea declarar estáticas las partes de la representación que no
+ cambian, de manera que se compartan entre todas las instancias.
+ 
+ - Deberéis implementar constructores que generen la solución inicial. El enunciado os pide que busquéis
+ al menos dos estrategias para generarla.
