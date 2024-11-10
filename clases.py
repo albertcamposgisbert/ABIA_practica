@@ -1,6 +1,7 @@
 from abia_azamon import *
 from aima.search import Problem
 from copy import deepcopy
+import random
 
 class Operator(object):
     pass
@@ -11,7 +12,7 @@ class MovePackage(Operator):
         self.of_dest = of
 
     def __repr__(self) -> str:
-        return f"Cambbiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
+        return f"Cambiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
 
 class SwapPackages(Operator):
     def __init__(self, p1: Paquete, p2: Paquete):
@@ -47,6 +48,7 @@ class StateRepresentation(object):
             f"Ofertas:\n{ofertas_info}\n\n"
             f"Peso total por oferta:\n{peso_por_oferta_info}\n\n"
             f"Asignación de ofertas por paquete:\n{asignaciones_info}\n\n"
+            f"Días avanzados (felicidad):\n{self.total_dias_avanzados}\n\n"
             f"Costes:\n"
             f"  - Coste de almacenamiento: {self.coste_almacenamiento:.2f} €\n"
             f"  - Coste total de ofertas: {self.coste_total_ofertas:.2f} €\n"
@@ -96,6 +98,39 @@ class StateRepresentation(object):
                     id_oferta2 = self.oferta_por_paquete[self.paquetes.index(paquete2)]
                     if asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and asignable(paquete2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1]):
                         yield SwapPackages (paquete1, paquete2)
+
+
+    def generate_one_action_sa(self):
+
+        # Recorregut per ofertes i paquets per saber quins podem moure:
+        move_parcel_combinations = set()
+        for oferta in self.ofertas:
+            for paquete in self.paquetes:
+                # Condició: oferta diferent i té espai per al paquet
+                if asignable(paquete, oferta, self.peso_por_oferta[self.ofertas.index(oferta)]):
+                    move_parcel_combinations.add((paquete, oferta))
+
+        # Intercanviar paquets
+        swap_parcels_combinations = set()
+        for paquete1 in self.paquetes:
+                for paquete2 in self.paquetes:
+                    # Condición: son paquetes distintos y son asignables a las ofertas del otro
+                    if paquete1 != paquete2:
+                        id_oferta1 = self.oferta_por_paquete[self.paquetes.index(paquete1)]
+                        id_oferta2 = self.oferta_por_paquete[self.paquetes.index(paquete2)]
+                        if asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and \
+                            asignable(paquete2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1]):
+                            swap_parcels_combinations.add((paquete1, paquete2))
+
+        n = len(move_parcel_combinations)
+        m = len(swap_parcels_combinations)
+        random_value = random.random()
+        if random_value < (n / (n + m)):
+            combination = random.choice(list(move_parcel_combinations))
+            yield MovePackage(combination[0], combination[1])
+        else:
+            combination = random.choice(list(swap_parcels_combinations))
+            yield SwapPackages(combination[0], combination[1])
                         
 
     def apply_action(self, action: Operator):
@@ -194,7 +229,7 @@ class Problema(Problem):
         self.alpha = alpha
 
     def actions(self, state: StateRepresentation):
-        return state.generate_actions()
+        return state.generate_one_action_sa()
 
     def result(self, state: StateRepresentation, action: Operator) -> StateRepresentation:
         return state.apply_action(action)
