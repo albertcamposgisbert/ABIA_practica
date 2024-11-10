@@ -12,7 +12,7 @@ class MovePackage(Operator):
         self.of_dest = of
 
     def __repr__(self) -> str:
-        return f"Cambbiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
+        return f"Cambiar el paquete {self.p} de la oferta {self.of1} a la oferta {self.of2}"
 
 class SwapPackages(Operator):
     def __init__(self, p1: Paquete, p2: Paquete):
@@ -160,6 +160,7 @@ class StateRepresentation(object):
 
             
             # Resta los días avanzados de la oferta actual
+            print(f'Dias avanzados antes de move: {new_state.total_dias_avanzados}')
             dias_esperados = 1 if paq.prioridad == 0 else 3 if paq.prioridad == 1 else 5
             dias_avanzados_actual = dias_esperados - self.ofertas[id_oferta_actual].dias
             new_state.total_dias_avanzados -= dias_avanzados_actual
@@ -167,8 +168,8 @@ class StateRepresentation(object):
             # Suma los días avanzados de la nueva oferta
             dias_avanzados_nueva = dias_esperados - self.ofertas[id_oferta_nueva].dias
             new_state.total_dias_avanzados += dias_avanzados_nueva
+            print(f'Dias avanzados después de move: {new_state.total_dias_avanzados}')
 
-            #print(f'HEUR2:{new_state.heuristic()}')
             
         
         elif isinstance(action, SwapPackages):
@@ -200,18 +201,17 @@ class StateRepresentation(object):
             dias_esperados1 = 1 if paq1.prioridad == 0 else 3 if paq1.prioridad == 1 else 5
             dias_esperados2 = 1 if paq2.prioridad == 0 else 3 if paq2.prioridad == 1 else 5
             dias_avanzados1_actual = dias_esperados1 - self.ofertas[id_oferta1].dias
-            if self.total_dias_avanzados > 3: print(f'dias_av1: {self.total_dias_avanzados}')
+            print(f'Dias avanzados antes de swap: {new_state.total_dias_avanzados}')
             dias_avanzados2_actual = dias_esperados2 - self.ofertas[id_oferta2].dias
             new_state.total_dias_avanzados -= dias_avanzados1_actual
             new_state.total_dias_avanzados -= dias_avanzados2_actual
-            if self.total_dias_avanzados > 3: print(f'dias_av2: {self.total_dias_avanzados}')
             
             # Suma la felicidad del cliente después de intercambiar los paquetes
             dias_avanzados1_nueva = dias_esperados1 - self.ofertas[id_oferta2].dias
             dias_avanzados2_nueva = dias_esperados2 - self.ofertas[id_oferta1].dias
             new_state.total_dias_avanzados += dias_avanzados1_nueva
             new_state.total_dias_avanzados += dias_avanzados2_nueva
-            if self.total_dias_avanzados > 3: print(f'dias_av3: {self.total_dias_avanzados}')
+            print(f'Dias avanzados después de swap: {new_state.total_dias_avanzados}')
 
         return new_state
     
@@ -240,7 +240,7 @@ class Problema(Problem):
         super().__init__(initial_state)
 
     def actions(self, state: StateRepresentation):
-        return state.generate_actions()
+        return state.generate_one_action_sa()
 
     def result(self, state: StateRepresentation, action: Operator) -> StateRepresentation:
         return state.apply_action(action)
