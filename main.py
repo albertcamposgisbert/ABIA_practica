@@ -4,9 +4,6 @@ from clases import *
 from aima.search import hill_climbing
 import random
 
-
-import random
-
 class EstadoInicialAleatorio:
     def __init__(self, semilla: int, n_paq: int, factor_ofertas: float = 1.2):
         self.semilla = semilla
@@ -15,6 +12,7 @@ class EstadoInicialAleatorio:
         self.paquetes = random_paquetes(n_paq, semilla)
         self.ofertas = random_ofertas(self.paquetes, factor_ofertas, semilla)
         self.estado_inicial = self.crear_asignacion_aleatoria()
+        self.total_dias_avanzados = 0
 
     def crear_asignacion_aleatoria(self) -> StateRepresentation:
         random.seed(self.semilla)
@@ -63,6 +61,7 @@ class EstadoInicialPorPrioridad:
         self.paquetes = random_paquetes(n_paq, semilla)
         self.ofertas = random_ofertas(self.paquetes, factor_ofertas, semilla)
         self.estado_inicial = self.crear_asignacion_por_prioridad()
+        self.total_dias_avanzados = 0
 
     def crear_asignacion_por_prioridad(self) -> StateRepresentation:
         assig = StateRepresentation(self.paquetes, self.ofertas)
@@ -112,7 +111,7 @@ class EstadoInicialPorPrioridad:
                 f"  semilla={self.semilla},\n"
                 f"  n_paq={self.n_paq},\n"
                 f"  factor_ofertas={self.factor_ofertas},\n"
-                f"  paquetes={self.paquetes},\n"
+                #f"  paquetes={self.paquetes},\n"
                 f"  ofertas={self.ofertas},\n"
                 f"  estado_inicial={self.estado_inicial}\n"
                 f")")
@@ -129,10 +128,7 @@ if __name__ == "__main__":
     
     print(estado_inicial_aleatorio)
     
-    beta = 1.0
-    alpha = 1.0
-    
-    problema = Problema(estado_actual, beta, alpha)
+    problema = Problema(estado_actual)
     
     solucion = hill_climbing(problema)
     
@@ -144,13 +140,10 @@ if __name__ == "__main__":
     
     
     
-    estado_inicial_por_prioridad = EstadoInicialPorPrioridad(semilla=222234, n_paq=10)
+    estado_inicial_por_prioridad = EstadoInicialPorPrioridad(semilla=777777, n_paq=50)
     estado_actual = estado_inicial_por_prioridad.estado_inicial
     
     print(estado_inicial_por_prioridad)
-    
-    beta = 1.0
-    alpha = 1.0
     
     problema = Problema(estado_actual)
     solucion = hill_climbing (problema)
@@ -159,8 +152,7 @@ if __name__ == "__main__":
     print("Solución encontrada:")
     print(solucion)
     print("Valor de la heurística de la solución:")
-    print(solucion.heuristic())
-    #print(problema.value(solucion))
+    print(-problema.value(solucion))
     
 
 

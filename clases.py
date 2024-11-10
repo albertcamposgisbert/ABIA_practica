@@ -44,8 +44,8 @@ class StateRepresentation(object):
         
         return (
             f"--- Solución final ---\n"
-            f"Paquetes:\n{paquetes_info}\n\n"
-            f"Ofertas:\n{ofertas_info}\n\n"
+            #f"Paquetes:\n{paquetes_info}\n\n"
+            #f"Ofertas:\n{ofertas_info}\n\n"
             f"Peso total por oferta:\n{peso_por_oferta_info}\n\n"
             f"Asignación de ofertas por paquete:\n{asignaciones_info}\n\n"
             f"Días avanzados (felicidad):\n{self.total_dias_avanzados}\n\n"
@@ -75,6 +75,7 @@ class StateRepresentation(object):
         new_state.coste_total_ofertas = self.coste_total_ofertas
         new_state.coste_total_clientes = self.coste_total_clientes
         new_state.coste_por_kg_dia = self.coste_por_kg_dia
+        new_state.total_dias_avanzados = self.total_dias_avanzados
 
         
         return new_state
@@ -90,16 +91,15 @@ class StateRepresentation(object):
                     yield MovePackage(paquete, oferta)
 
         # Intercanviar paquets
-        for paquete1 in self.paquetes:
-            for paquete2 in self.paquetes:
-                # Condición: son paquetes distintos y son asignables a las ofertas del otro
-                if paquete1 != paquete2:
-                    id_oferta1 = self.oferta_por_paquete[self.paquetes.index(paquete1)]
-                    id_oferta2 = self.oferta_por_paquete[self.paquetes.index(paquete2)]
-                    if asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and asignable(paquete2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1]):
-                        #print("ENTRA EN ASIGNABLE2222")
-                        yield SwapPackages (paquete1, paquete2)
-
+        for i, paq1 in enumerate(self.paquetes):
+            for j, paq2 in enumerate(self.paquetes[i+1:], i+1):
+                id_oferta1 = self.oferta_por_paquete[i]
+                id_oferta2 = self.oferta_por_paquete[j]
+                
+                    
+                if (id_oferta1 != id_oferta2 and asignable(paq1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2] - paq2.peso) and \
+                asignable(paq2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1] - paq1.peso)):
+                    yield SwapPackages(paq1, paq2)
 
     def generate_one_action_sa(self):
 
@@ -119,7 +119,8 @@ class StateRepresentation(object):
                     if paquete1 != paquete2:
                         id_oferta1 = self.oferta_por_paquete[self.paquetes.index(paquete1)]
                         id_oferta2 = self.oferta_por_paquete[self.paquetes.index(paquete2)]
-                        if asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and \
+
+                        if id_oferta1 != id_oferta2 and asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and \
                             asignable(paquete2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1]):
                             swap_parcels_combinations.add((paquete1, paquete2))
 
@@ -142,25 +143,17 @@ class StateRepresentation(object):
 
             # Resta peso y coste de la oferta actual
             id_oferta_actual = new_state.oferta_por_paquete[self.paquetes.index(paq)]
-            #print(f'PESO ANTERIOR ANTERIOR OFERTA {new_state.peso_por_oferta[id_oferta_actual]} ')
-
             new_state.peso_por_oferta[id_oferta_actual] -= paq.peso
-
-            #print(f'PESO ACTUAL ANTERIOR OFERTA {new_state.peso_por_oferta[id_oferta_actual]} ')
-            #print(f'COSTE 1 OFERTAS {new_state.coste_total_ofertas} ')
             new_state.coste_total_ofertas -= self.ofertas[id_oferta_actual].precio * paq.peso
-            #print(f'PESO 2 OFERTAS {new_state.coste_total_ofertas} ')
 
             # Suma el peso y coste de la nueva oferta
             id_oferta_nueva = self.ofertas.index(of)
             new_state.oferta_por_paquete[self.paquetes.index(paq)] = id_oferta_nueva
             new_state.peso_por_oferta[id_oferta_nueva] += paq.peso
             new_state.coste_total_ofertas += self.ofertas[id_oferta_nueva].precio * paq.peso
-            #print(f'COSTE 3 OFERTAS {new_state.coste_total_ofertas} ')
 
             
             # Resta los días avanzados de la oferta actual
-            print(f'Dias avanzados antes de move: {new_state.total_dias_avanzados}')
             dias_esperados = 1 if paq.prioridad == 0 else 3 if paq.prioridad == 1 else 5
             dias_avanzados_actual = dias_esperados - self.ofertas[id_oferta_actual].dias
             new_state.total_dias_avanzados -= dias_avanzados_actual
@@ -168,56 +161,58 @@ class StateRepresentation(object):
             # Suma los días avanzados de la nueva oferta
             dias_avanzados_nueva = dias_esperados - self.ofertas[id_oferta_nueva].dias
             new_state.total_dias_avanzados += dias_avanzados_nueva
-            print(f'Dias avanzados después de move: {new_state.total_dias_avanzados}')
 
             
         
         elif isinstance(action, SwapPackages):
-            
             paq1 = action.p1
             paq2 = action.p2
+            index_paq1 = self.paquetes.index(paq1)
+            index_paq2 = self.paquetes.index(paq2)
 
-            id_oferta1 = new_state.oferta_por_paquete[self.paquetes.index(paq1)]
-            id_oferta2 = new_state.oferta_por_paquete[self.paquetes.index(paq2)]
+            # Obtener las ofertas actuales usando los índices guardados
+            id_oferta1 = new_state.oferta_por_paquete[index_paq1]
+            id_oferta2 = new_state.oferta_por_paquete[index_paq2]
 
             # Resta pesos y costes de las ofertas actuales
             new_state.peso_por_oferta[id_oferta1] -= paq1.peso
             new_state.peso_por_oferta[id_oferta2] -= paq2.peso
-            new_state.coste_total_ofertas -= self.ofertas[id_oferta1].precio * paq1.peso
-            new_state.coste_total_ofertas -= self.ofertas[id_oferta2].precio * paq2.peso
+            new_state.coste_total_ofertas -= new_state.ofertas[id_oferta1].precio * paq1.peso
+            new_state.coste_total_ofertas -= new_state.ofertas[id_oferta2].precio * paq2.peso
 
-            # Intercambia ofertas
-            new_state.oferta_por_paquete[self.paquetes.index(paq1)] = id_oferta2
-            new_state.oferta_por_paquete[self.paquetes.index(paq2)] = id_oferta1
+            # Intercambia ofertas usando los índices guardados
+            new_state.oferta_por_paquete[index_paq1] = id_oferta2
+            new_state.oferta_por_paquete[index_paq2] = id_oferta1
             
             # Suma pesos y costes de las nuevas ofertas
             new_state.peso_por_oferta[id_oferta1] += paq2.peso
             new_state.peso_por_oferta[id_oferta2] += paq1.peso
-            new_state.coste_total_ofertas += self.ofertas[id_oferta1].precio * paq2.peso
-            new_state.coste_total_ofertas += self.ofertas[id_oferta2].precio * paq1.peso
-
+            new_state.coste_total_ofertas += new_state.ofertas[id_oferta1].precio * paq2.peso
+            new_state.coste_total_ofertas += new_state.ofertas[id_oferta2].precio * paq1.peso
 
             # Resta la felicidad del cliente antes de intercambiar los paquetes
             dias_esperados1 = 1 if paq1.prioridad == 0 else 3 if paq1.prioridad == 1 else 5
             dias_esperados2 = 1 if paq2.prioridad == 0 else 3 if paq2.prioridad == 1 else 5
-            dias_avanzados1_actual = dias_esperados1 - self.ofertas[id_oferta1].dias
-            print(f'Dias avanzados antes de swap: {new_state.total_dias_avanzados}')
-            dias_avanzados2_actual = dias_esperados2 - self.ofertas[id_oferta2].dias
+            dias_avanzados1_actual = dias_esperados1 - new_state.ofertas[id_oferta1].dias
+            dias_avanzados2_actual = dias_esperados2 - new_state.ofertas[id_oferta2].dias
             new_state.total_dias_avanzados -= dias_avanzados1_actual
             new_state.total_dias_avanzados -= dias_avanzados2_actual
             
             # Suma la felicidad del cliente después de intercambiar los paquetes
-            dias_avanzados1_nueva = dias_esperados1 - self.ofertas[id_oferta2].dias
-            dias_avanzados2_nueva = dias_esperados2 - self.ofertas[id_oferta1].dias
+            dias_avanzados1_nueva = dias_esperados1 - new_state.ofertas[id_oferta2].dias
+            dias_avanzados2_nueva = dias_esperados2 - new_state.ofertas[id_oferta1].dias
             new_state.total_dias_avanzados += dias_avanzados1_nueva
             new_state.total_dias_avanzados += dias_avanzados2_nueva
-            print(f'Dias avanzados después de swap: {new_state.total_dias_avanzados}')
 
         return new_state
     
-    def heuristic(self) -> float:
+    def heuristic_cost(self) -> float:
         coste_total = self.coste_total_ofertas + self.coste_almacenamiento
-        return coste_total 
+        return 1*coste_total
+    
+    def heuristic_con_felicidad(self) -> float:
+        coste_total = self.coste_total_ofertas + self.coste_almacenamiento
+        return 1*coste_total - 2 * self.total_dias_avanzados
   
     
 def asignable(paquete, oferta, peso_acumulado):
@@ -240,15 +235,14 @@ class Problema(Problem):
         super().__init__(initial_state)
 
     def actions(self, state: StateRepresentation):
-        return state.generate_one_action_sa()
+        return state.generate_actions()
 
     def result(self, state: StateRepresentation, action: Operator) -> StateRepresentation:
         return state.apply_action(action)
 
     def value(self, state: StateRepresentation) -> float:
-        return -state.heuristic()
+        return -state.heuristic_cost()
 
     def goal_test(self, state: StateRepresentation) -> bool:
         return False
     
-
