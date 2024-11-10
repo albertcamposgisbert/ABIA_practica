@@ -1,6 +1,6 @@
 from abia_azamon import *
 from clases import *
-from aima.search import hill_climbing
+from aima.search import hill_climbing, simulated_annealing
 
 
 def crear_asignacion_por_prioridad(paquetes, ofertas):
@@ -93,13 +93,14 @@ if __name__ == "__main__":
     alpha = 1.0
     
     problema = Problema(estado_actual, beta, alpha)
-    solucion = hill_climbing (problema)
+    solucion = simulated_annealing (problema)
     
     
     print("Solución encontrada:")
     print(solucion)
     print("Valor de la heurística de la solución:")
-    print(problema.value(solucion))
+    print(solucion.heuristic(beta, alpha))
+    #print(problema.value(solucion))
     
     
 
