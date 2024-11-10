@@ -1,23 +1,10 @@
 from abia_azamon import *
 from clases import *
-from copy import deepcopy
-from aima.search import Problem
+from aima.search import hill_climbing
 
 
 
-def asignable(paquete, oferta, peso_acumulado):
-    
-    if paquete.peso + peso_acumulado > oferta.pesomax:
-        return False
-    
-    if paquete.prioridad == 0 and oferta.dias != 1:
-        return False
-    if paquete.prioridad == 1 and oferta.dias not in [2, 3]:
-        return False
-    if paquete.prioridad == 2 and oferta.dias not in [4, 5]:
-        return False
-    
-    return True
+
 
 def crear_asignacion_por_prioridad(paquetes, ofertas):
 
@@ -92,21 +79,12 @@ def estado_inicial_por_prioridad(semilla, n_paq):
     return estado_inicial
     
 
-# Heurísticas
-# def puntuación_felicidad():
-#     pass
-
-# def puntuación_coste():
-#     pass
-
-# # lambda*coste + beta*felicidad
-# def puntuación_total():
-#     pass
-
 
 if __name__ == "__main__":
-    estado_actual = estado_inicial_por_prioridad(1234, 100)
-    estado_succesor = estado_actual.copy()
+    estado_actual = estado_inicial_por_prioridad(1234, 5)
+    n = hill_climbing ( Problema ( estado_actual ) )
+    print (n)
+    print (n . heuristic ())
     
     
 

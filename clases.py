@@ -1,5 +1,6 @@
 from abia_azamon import *
-from main import *
+from aima.search import Problem
+from copy import deepcopy
 
 class Operator(object):
     pass
@@ -33,6 +34,27 @@ class StateRepresentation(object):
         self.coste_total_clientes = 0.0
         self.coste_por_kg_dia = 0.25
 
+    def __repr__(self) -> str:
+        paquetes_info = "\n".join([f"Paquete {i}: {paquete}" for i, paquete in enumerate(self.paquetes)])
+        ofertas_info = "\n".join([f"Oferta {i}: {oferta}" for i, oferta in enumerate(self.ofertas)])
+        peso_por_oferta_info = "\n".join([f"Oferta {i}: {peso} kg" for i, peso in enumerate(self.peso_por_oferta)])
+        asignaciones_info = "\n".join([f"Paquete {i} -> Oferta {oferta}" for i, oferta in enumerate(self.oferta_por_paquete) if oferta is not None])
+        
+        return (
+            f"--- Solución final ---\n"
+            f"Paquetes:\n{paquetes_info}\n\n"
+            f"Ofertas:\n{ofertas_info}\n\n"
+            f"Peso total por oferta:\n{peso_por_oferta_info}\n\n"
+            f"Asignación de ofertas por paquete:\n{asignaciones_info}\n\n"
+            f"Costes:\n"
+            f"  - Coste de almacenamiento: {self.coste_almacenamiento:.2f} €\n"
+            f"  - Coste total de ofertas: {self.coste_total_ofertas:.2f} €\n"
+            f"  - Coste total clientes: {self.coste_total_clientes:.2f} €\n"
+            f"  - Coste por kg/día de almacenamiento: {self.coste_por_kg_dia:.2f} €\n"
+            f"--------------------------------------"
+        )
+
+
 
     def copy(self):
         """Devuelve una copia profunda del estado actual."""
@@ -54,25 +76,23 @@ class StateRepresentation(object):
         
         return new_state
 
-    def __repr__(self) -> str:
-        return f"v_c={str(self.v_c)} | {self.params}"
 
     def generate_actions(self):
         # Recorregut per ofertes i paquets per saber quins podem moure:
 
-        for id_oferta in self.ofertas:
+        for oferta in self.ofertas:
             for paquete in self.paquetes:
                 # Condició: oferta diferent i té espai per al paquet
-                if asignable(paquete, self.ofertas[id_oferta], self.peso_por_oferta[id_oferta]):
-                    yield MovePackage(paquete, self.ofertas[id_oferta])
+                if asignable(paquete, oferta, self.peso_por_oferta[self.ofertas.index(oferta)]):
+                    yield MovePackage(paquete, oferta)
 
         # Intercanviar paquets
         for paquete1 in self.paquetes:
             for paquete2 in self.paquetes:
                 # Condición: son paquetes distintos y son asignables a las ofertas del otro
                 if paquete1 != paquete2:
-                    id_oferta1 = self.oferta_por_paquete[paquetes.index(paquete1)]
-                    id_oferta2 = self.oferta_por_paquete[paquetes.index(paquete2)]
+                    id_oferta1 = self.oferta_por_paquete[self.paquetes.index(paquete1)]
+                    id_oferta2 = self.oferta_por_paquete[self.paquetes.index(paquete2)]
                     if asignable(paquete1, self.ofertas[id_oferta2], self.peso_por_oferta[id_oferta2]) and asignable(paquete2, self.ofertas[id_oferta1], self.peso_por_oferta[id_oferta1]):
                         yield SwapPackages (paquete1, paquete2)
                         
@@ -83,12 +103,12 @@ class StateRepresentation(object):
             paq = action.paq
             of = action.of_dest
 
-            new_state.peso_por_oferta[new_state.oferta_por_paquete[paquetes.index(paq)]] = new_state.peso_por_oferta[new_state.oferta_por_paquete[paquetes.index(paq)]] - paq.peso
+            new_state.peso_por_oferta[new_state.oferta_por_paquete[self.paquetes.index(paq)]] = new_state.peso_por_oferta[new_state.oferta_por_paquete[self.paquetes.index(paq)]] - paq.peso
             id_oferta = self.ofertas.index(of)
-            new_state.oferta_por_paquete[paquetes.index(paq)] = id_oferta
+            new_state.oferta_por_paquete[self.paquetes.index(paq)] = id_oferta
             new_state.peso_por_oferta[id_oferta] = self.peso_por_oferta[id_oferta] + paq.peso
             
-            new_state.coste_total_ofertas = self.coste_total_ofertas - self.ofertas[self.oferta_por_paquete[paquetes.index(paq)]].precio * paq.peso + of.precio * paq.peso
+            new_state.coste_total_ofertas = self.coste_total_ofertas - self.ofertas[self.oferta_por_paquete[self.paquetes.index(paq)]].precio * paq.peso + of.precio * paq.peso
             
             # Resta peso y coste de la oferta actual
             id_oferta_actual = new_state.oferta_por_paquete[self.paquetes.index(paq)]
@@ -132,24 +152,40 @@ class StateRepresentation(object):
         
         
     def heuristic(self) -> float:
-            pass
+         return (self.coste_total_ofertas + self.coste_almacenamiento)
+    
+def asignable(paquete, oferta, peso_acumulado):
+    
+    if paquete.peso + peso_acumulado > oferta.pesomax:
+        return False
+    
+    if paquete.prioridad == 0 and oferta.dias != 1:
+        return False
+    if paquete.prioridad == 1 and oferta.dias not in [2, 3]:
+        return False
+    if paquete.prioridad == 2 and oferta.dias not in [4, 5]:
+        return False
+    
+    return True
+
+
 
 # USO AIMA (aún está con los param del BinPacking)
-# class Problem(Problem):
-#     def __init__(self, initial_state: StateRepresentation):
-#         super().__init__(initial_state)
+class Problema(Problem):
+    def __init__(self, initial_state: StateRepresentation):
+        super().__init__(initial_state)
 
-#     def actions(self, state: StateRepresentation) -> Generator[BinPackingOperator, None, None]:
-#         return state.generate_actions()
+    def actions(self, state: StateRepresentation):
+        return state.generate_actions()
 
-#     def result(self, state: StateRepresentation, action: BinPackingOperator) -> StateRepresentation:
-#         return state.apply_action(action)
+    def result(self, state: StateRepresentation, action: Operator) -> StateRepresentation:
+        return state.apply_action(action)
 
-#     def value(self, state: StateRepresentation) -> float:
-#         return -state.heuristic()
+    def value(self, state: StateRepresentation) -> float:
+        return -state.heuristic()
 
-#     def goal_test(self, state: StateRepresentation) -> bool:
-#         return False
+    def goal_test(self, state: StateRepresentation) -> bool:
+        return False
     
 
 ######################
