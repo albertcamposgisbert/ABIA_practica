@@ -1,6 +1,6 @@
 from abia_azamon import *
 from clases import *
-from aima.search import hill_climbing
+from aima.search import hill_climbing, simulated_annealing
 
 
 def crear_asignacion_por_prioridad(paquetes, ofertas):
@@ -80,6 +80,7 @@ def estado_inicial_por_prioridad(semilla, n_paq):
         print(f'Coste total clientes {estado_inicial.coste_total_clientes} €')
         print('\n')
         print(f'Beneficio final: {estado_inicial.coste_total_clientes - estado_inicial.coste_total_ofertas - estado_inicial.coste_almacenamiento} €')
+        print(f'Días avanzados: {estado_inicial.total_dias_avanzados}')
         
     return estado_inicial
     
@@ -87,12 +88,9 @@ def estado_inicial_por_prioridad(semilla, n_paq):
 
 if __name__ == "__main__":
     
-    estado_actual = estado_inicial_por_prioridad(222234, 10)
+    estado_actual = estado_inicial_por_prioridad(123400, 25)
     
-    beta = 1.0
-    alpha = 1.0
-    
-    problema = Problema(estado_actual, beta, alpha)
+    problema = Problema(estado_actual)
     solucion = hill_climbing (problema)
     
     
